@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Lokus Rumah DataKu - Portal Integrasi</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js & Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <!-- Google Charts untuk GeoChart -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <!-- PapaParse untuk membaca CSV Google Sheets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS untuk Ekspor Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+            border: 1px solid #E2E8F0;
+        }
+        /* Custom scrollbar untuk tabel scroll internal */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #F1F5F9;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased h-screen overflow-hidden flex flex-col bg-slate-100/70 p-3 lg:p-4">
+
+    <!-- MAIN SINGLE-SCREEN DASHBOARD CONTAINER -->
+    <main class="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-3.5 overflow-hidden">
+        
+        <!-- ================= KOLOM KIRI: FILTER & CONTROL PANEL (DILAPIS KECIL: lg:col-span-2) ================= -->
+        <aside class="lg:col-span-2 card p-3 flex flex-col justify-between h-full overflow-y-auto custom-scroll space-y-3">
+            <div class="space-y-3">
+                <!-- Title & Status -->
+                <div class="border-b border-slate-100 pb-2.5">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-extrabold tracking-wider uppercase text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                            Rumah DataKu
+                        </span>
+                        <div class="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 text-[9px] font-bold">
+                            <span class="animate-pulse w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                            <span id="data-status">Terhubung</span>
+                        </div>
+                    </div>
+                    <h1 class="text-base font-extrabold text-slate-900 leading-tight">Dashboard Lokus</h1>
+                    <p class="text-[10px] text-slate-500 mt-0.5 leading-tight">Capaian & Sebaran Lokus</p>
+                </div>
+
+                <!-- Kendali Tampilan / Filter Controls -->
+                <div class="space-y-2.5">
+                    <div class="flex items-center gap-1 text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                        <i class="fa-solid fa-sliders text-indigo-600"></i>
+                        <span>Filter Kontrol</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Status Validasi</label>
+                            <select id="filter-status-validasi" onchange="onFilterChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[11px] rounded-lg p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none font-medium">
+                                <option value="all">Semua Status</option>
+                                <option value="Sesuai">Sesuai</option>
+                                <option value="Butuh Perbaikan">Butuh Perbaikan</option>
+                                <option value="Belum Ada Bukti Dukung">Belum Ada Bukti</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Tahun Kegiatan</label>
+                            <select id="filter-tahun" onchange="onFilterChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[11px] rounded-lg p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none font-medium">
+                                <option value="all">Semua Tahun</option>
+                                <option value="2025">Tahun 2025</option>
+                                <option value="2026">Tahun 2026</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Provinsi</label>
+                            <select id="filter-provinsi" onchange="onProvinsiFilterChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[11px] rounded-lg p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none font-medium">
+                                <option value="all">Indonesia (38 Prov)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">Kabupaten / Kota</label>
+                            <select id="filter-kabkota" onchange="onFilterChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-[11px] rounded-lg p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none font-medium" disabled>
+                                <option value="all">Semua Kab / Kota</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Combined Sub-Menu Frame: 3 Analisis Grafik (Kiri Bawah) -->
+                <div class="pt-2 border-t border-slate-100 flex-1 flex flex-col justify-between">
+                    <!-- Header & Sub-Menu Switcher -->
+                    <div class="space-y-1.5 mb-2">
+                        <div class="flex items-center justify-between">
+                            <span id="left-chart-title" class="text-[10px] font-bold text-slate-800 truncate">Frekuensi Pemutakhiran</span>
+                            <i id="left-chart-icon" class="fa-solid fa-arrows-rotate text-[10px] text-indigo-500 shrink-0"></i>
+                        </div>
+                        
+                        <!-- Sub Menu Tab Selector (3 Buttons) -->
+                        <div class="flex bg-slate-100 p-0.5 rounded-lg text-[9px] font-bold">
+                            <button id="left-tab-btn-freq" onclick="switchLeftChartTab('freq')" class="flex-1 py-1 px-1 rounded text-indigo-700 bg-white shadow-sm transition-all truncate">
+                                Frekuensi
+                            </button>
+                            <button id="left-tab-btn-jenis" onclick="switchLeftChartTab('jenis')" class="flex-1 py-1 px-1 rounded text-slate-500 hover:text-slate-700 transition-all truncate">
+                                Jenis
+                            </button>
+                            <button id="left-tab-btn-intensitas" onclick="switchLeftChartTab('intensitas')" class="flex-1 py-1 px-1 rounded text-slate-500 hover:text-slate-700 transition-all truncate">
+                                Intensitas
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chart Container Views -->
+                    <div class="h-32 w-full relative">
+                        <!-- View 1: Frekuensi Update -->
+                        <div id="container-left-chart-freq" class="w-full h-full">
+                            <canvas id="chart-frekuensi-update"></canvas>
+                        </div>
+                        <!-- View 2: Jenis Pemanfaatan -->
+                        <div id="container-left-chart-jenis" class="w-full h-full hidden">
+                            <canvas id="chart-jenis-pemanfaatan"></canvas>
+                        </div>
+                        <!-- View 3: Intensitas Pemanfaatan -->
+                        <div id="container-left-chart-intensitas" class="w-full h-full hidden">
+                            <canvas id="chart-intensitas-pemanfaatan"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Note -->
+            <div class="text-[9px] text-slate-400 border-t border-slate-100 pt-1.5 text-center leading-tight shrink-0">
+                Direktorat Perencanaan Pengendalian Penduduk
+            </div>
+        </aside>
+
+        <!-- ================= KOLOM TENGAH: FRAME MAIN VISUAL (GEO MAP + TREN TABS) & KPI STATS (lg:col-span-7) ================= -->
+        <section class="lg:col-span-7 flex flex-col gap-3.5 h-full overflow-hidden">
+            
+            <!-- Combined Visual Frame Card (Geo Chart & Tren Line Switchable) -->
+            <div class="card p-4 flex-1 flex flex-col justify-between overflow-hidden relative">
+                <!-- Frame Sub-Header / Toggle Menu Bar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2 mb-2 gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                            <i id="visual-frame-icon" class="fa-solid fa-globe text-xs"></i>
+                        </div>
+                        <div>
+                            <h2 id="visual-frame-title" class="text-xs font-bold text-slate-900 leading-tight">Peta Sebaran Lokus Rumah DataKu</h2>
+                            <p id="visual-frame-desc" class="text-[10px] text-slate-400">Intensitas warna menunjukkan tingkat pemenuhan target</p>
+                        </div>
+                    </div>
+
+                    <!-- Sub Menu Switcher Tabs -->
+                    <div class="flex bg-slate-100 p-0.5 rounded-xl text-[11px] font-bold shrink-0">
+                        <button id="view-btn-geo" onclick="switchVisualView('geo')" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-indigo-700 bg-white shadow-sm transition-all">
+                            <i class="fa-solid fa-map-location-dot text-[10px]"></i>
+                            <span>Peta Sebaran</span>
+                        </button>
+                        <button id="view-btn-tren" onclick="switchVisualView('tren')" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-slate-500 hover:text-slate-700 transition-all">
+                            <i class="fa-solid fa-chart-line text-[10px]"></i>
+                            <span>Tren Line</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visual View 1: GeoChart Map Container -->
+                <div id="container-view-geo" class="flex-1 w-full bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-center overflow-hidden min-h-[220px]">
+                    <div id="geochart-canvas" class="w-full h-full min-h-[220px]"></div>
+                </div>
+
+                <!-- Visual View 2: Tren Line Chart Container (Hidden by default) -->
+                <div id="container-view-tren" class="flex-1 w-full bg-slate-50/50 rounded-xl border border-slate-100 p-3 hidden flex-col justify-center min-h-[220px]">
+                    <div class="w-full h-full">
+                        <canvas id="chart-tren-tahun"></canvas>
+                    </div>
+                </div>
+
+                <!-- Info Banner Footer -->
+                <div id="visual-frame-footer-note" class="mt-2 text-[10px] text-slate-400 text-center bg-slate-50 py-1 rounded-lg border border-slate-100">
+                    Arahkan kursor pada pulau/provinsi untuk melihat detail lokus
+                </div>
+            </div>
+
+            <!-- KPI Summary Cards (3 Columns Horizontal Grid) -->
+            <div class="grid grid-cols-3 gap-3 h-28 shrink-0">
+                
+                <!-- KPI Card 1: Target Akumulasi -->
+                <div class="card p-3 border-l-4 border-l-indigo-600 flex flex-col justify-between bg-gradient-to-br from-white via-white to-indigo-50/30">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span id="kpi-target-title" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Akumulasi</span>
+                            <span id="kpi-capaian-persen" class="font-extrabold text-[11px] text-indigo-600">0%</span>
+                        </div>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span id="kpi-capaian-aktual" class="text-xl font-extrabold text-slate-900">0</span>
+                            <span class="text-xs text-slate-400 font-bold">/</span>
+                            <span id="kpi-capaian-target" class="text-xs font-bold text-slate-500">0</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div id="kpi-progress-bar" class="h-full bg-indigo-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- KPI Card 2: Lokus Sesuai -->
+                <div class="card p-3 border-l-4 border-l-emerald-500 flex flex-col justify-between bg-gradient-to-br from-white via-white to-emerald-50/30">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lokus Sesuai</span>
+                            <span id="kpi-sesuai-persen" class="font-extrabold text-[11px] text-emerald-600">0%</span>
+                        </div>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span id="kpi-sesuai-count" class="text-xl font-extrabold text-slate-900">0</span>
+                            <span class="text-[10px] font-semibold text-slate-400">Lokus Valid</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-emerald-700 flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-circle-check"></i>
+                        Status Validasi Sesuai
+                    </div>
+                </div>
+
+                <!-- KPI Card 3: Butuh Perbaikan -->
+                <div class="card p-3 border-l-4 border-l-rose-500 flex flex-col justify-between bg-gradient-to-br from-white via-white to-rose-50/30">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Butuh Perbaikan</span>
+                            <span id="kpi-perbaikan-persen" class="font-extrabold text-[11px] text-rose-600">0%</span>
+                        </div>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <span id="kpi-perbaikan-count" class="text-xl font-extrabold text-slate-900">0</span>
+                            <span class="text-[10px] font-semibold text-slate-400">Lokus Revisi</span>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-rose-700 flex items-center gap-1 font-medium">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        Perlu Perbaikan Bukti
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================= KOLOM KANAN: TABEL EVALUASI & REKAP (DILAPIS KECIL: lg:col-span-3) ================= -->
+        <section class="lg:col-span-3 card p-3 flex flex-col justify-between h-full overflow-hidden">
+            
+            <!-- Header Tab Switcher -->
+            <div class="flex flex-col gap-2 border-b border-slate-100 pb-2">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-900">Evaluasi Capaian</h3>
+                    <button onclick="exportActiveTableToExcel()" class="flex items-center gap-1 px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded transition-all shadow-sm">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Unduh</span>
+                    </button>
+                </div>
+
+                <!-- Tab Navigation Buttons -->
+                <div class="flex bg-slate-100 p-0.5 rounded-xl text-[10px] font-bold">
+                    <button id="tab-btn-rekap" onclick="switchRightTab('rekap')" class="flex-1 py-1 rounded-lg text-indigo-700 bg-white shadow-sm transition-all">
+                        Rekap Wilayah
+                    </button>
+                    <button id="tab-btn-detail" onclick="switchRightTab('detail')" class="flex-1 py-1 rounded-lg text-slate-500 hover:text-slate-700 transition-all">
+                        Detail Lokus
+                    </button>
+                </div>
+
+                <!-- Search Input Bar -->
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-2 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-[9px]"></i>
+                    </span>
+                    <input type="text" id="right-search-input" oninput="onRightSearchInput()" placeholder="Cari wilayah..." class="w-full pl-7 pr-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium">
+                </div>
+            </div>
+
+            <!-- TAB CONTENT 1: REKAP WILAYAH (Scrollable Table) -->
+            <div id="panel-tab-rekap" class="flex-1 overflow-y-auto custom-scroll my-1 pr-0.5">
+                <table class="w-full text-left border-collapse text-[10px]">
+                    <thead class="sticky top-0 bg-white border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                        <tr>
+                            <th class="py-1.5 px-0.5 text-center w-6">No</th>
+                            <th class="py-1.5 px-1">Provinsi</th>
+                            <th class="py-1.5 px-0.5 text-center font-extrabold text-slate-900">Total</th>
+                            <th class="py-1.5 px-0.5 text-center text-emerald-700">Sesuai</th>
+                            <th class="py-1.5 px-0.5 text-center text-rose-700">Revisi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-rekap-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB CONTENT 2: DETAIL LOKUS UNIK (Scrollable Table) -->
+            <div id="panel-tab-detail" class="flex-1 overflow-y-auto custom-scroll my-1 pr-0.5 hidden">
+                <table class="w-full text-left border-collapse text-[10px]">
+                    <thead class="sticky top-0 bg-white border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                        <tr>
+                            <th class="py-1.5 px-0.5 text-center w-6">No</th>
+                            <th class="py-1.5 px-0.5">ID</th>
+                            <th class="py-1.5 px-1">Desa / Kab</th>
+                            <th class="py-1.5 px-0.5 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-lokus-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                </table>
+            </div>
+
+            <!-- Bottom Data Indicator -->
+            <div class="border-t border-slate-100 pt-1.5 text-[9px] text-slate-400 text-center shrink-0">
+                Menampilkan data lokus terverifikasi
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- CORE JAVASCRIPT LOGIC -->
+    <script>
+        let activeVisualView = 'geo'; // 'geo' | 'tren'
+        let activeLeftChartTab = 'freq'; // 'freq' | 'jenis' | 'intensitas'
+        let rawDatabase = [];
+        let filteredDatabase = [];
+        let chartTren = null;
+        let chartFrekuensi = null;
+        let chartJenis = null;
+        let chartIntensitas = null;
+        let activeTab = 'rekap';
+        let rightSearchText = '';
+
+        // Mapping ISO untuk GeoChart Indonesia
+        const provinceIsoMapping = {
+            "ACEH": "ID-AC", "SUMATERA UTARA": "ID-SU", "SUMATERA BARAT": "ID-SB", "RIAU": "ID-RI",
+            "JAMBI": "ID-JA", "SUMATERA SELATAN": "ID-SS", "BENGKULU": "ID-BE", "LAMPUNG": "ID-LA",
+            "KEPULAUAN BANGKA BELITUNG": "ID-BB", "KEPULAUAN RIAU": "ID-KR", "DKI JAKARTA": "ID-JK",
+            "JAWA BARAT": "ID-JB", "JAWA TENGAH": "ID-JT", "DI YOGYAKARTA": "ID-YO", "JAWA TIMUR": "ID-JI",
+            "BANTEN": "ID-BT", "BALI": "ID-BA", "NUSA TENGGARA BARAT": "ID-NB", "NUSA TENGGARA TIMUR": "ID-NT",
+            "KALIMANTAN BARAT": "ID-KB", "KALIMANTAN TENGAH": "ID-KT", "KALIMANTAN SELATAN": "ID-KS",
+            "KALIMANTAN TIMUR": "ID-KI", "KALIMANTAN UTARA": "ID-KU", "SULAWESI UTARA": "ID-SA",
+            "SULAWESI TENGAH": "ID-ST", "SULAWESI SELATAN": "ID-SN", "SULAWESI TENGGARA": "ID-SG",
+            "GORONTALO": "ID-GO", "SULAWESI BARAT": "ID-SR", "MALUKU": "ID-MA", "MALUKU UTARA": "ID-MU",
+            "PAPUA": "ID-PA", "PAPUA BARAT": "ID-PB", "PAPUA SELATAN": "ID-PS", "PAPUA TENGAH": "ID-PT",
+            "PAPUA PEGUNUNGAN": "ID-PE", "PAPUA BARAT DAYA": "ID-PD"
+        };
+
+        // Jumlah Kabupaten/Kota per Provinsi
+        const totalRegenciesByProvince = {
+            "ACEH": 23, "SUMATERA UTARA": 33, "SUMATERA BARAT": 19, "RIAU": 12, "JAMBI": 11,
+            "SUMATERA SELATAN": 17, "BENGKULU": 10, "LAMPUNG": 15, "KEPULAUAN BANGKA BELITUNG": 7,
+            "KEPULAUAN RIAU": 7, "DKI JAKARTA": 6, "JAWA BARAT": 27, "JAWA TENGAH": 35,
+            "DI YOGYAKARTA": 5, "JAWA TIMUR": 38, "BANTEN": 8, "BALI": 9, "NUSA TENGGARA BARAT": 10,
+            "NUSA TENGGARA TIMUR": 22, "KALIMANTAN BARAT": 14, "KALIMANTAN TENGAH": 14,
+            "KALIMANTAN SELATAN": 13, "KALIMANTAN TIMUR": 10, "KALIMANTAN UTARA": 5,
+            "SULAWESI UTARA": 15, "SULAWESI TENGAH": 13, "SULAWESI SELATAN": 24, "SULAWESI TENGGARA": 17,
+            "GORONTALO": 6, "SULAWESI BARAT": 6, "MALUKU": 11, "MALUKU UTARA": 10, "PAPUA": 9,
+            "PAPUA BARAT": 7, "PAPUA SELATAN": 4, "PAPUA TENGAH": 8, "PAPUA PEGUNUNGAN": 8, "PAPUA BARAT DAYA": 6
+        };
+
+        // Fallback Dataset jika koneksi Google Sheets bermasalah
+        const fallbackDatabase = [
+            { id: "1001", Status: "Sesuai", tahun: "2025", provinsi: "DI YOGYAKARTA", kabkota: "SLEMAN", kecamatan: "DEPOK", desa: "CATURTUNGGAL", pembaruan: "1 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Perencanaan" },
+            { id: "1002", Status: "Butuh Perbaikan", tahun: "2025", provinsi: "DKI JAKARTA", kabkota: "JAKARTA SELATAN", kecamatan: "CILANDAK", desa: "GANDARIA SELATAN", pembaruan: "2 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Penelitian" },
+            { id: "1003", Status: "Sesuai", tahun: "2026", provinsi: "JAWA BARAT", kabkota: "BANDUNG", kecamatan: "COBLONG", desa: "DAGO", pembaruan: "1 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Perencanaan" },
+            { id: "1004", Status: "Butuh Perbaikan", tahun: "2025", provinsi: "JAWA BARAT", kabkota: "BOGOR", kecamatan: "CIBINONG", desa: "PAKANSARI", pembaruan: "> 2 Kali", pemanf_aktif: "Tidak", pemanf_jenis: "" },
+            { id: "1005", Status: "Sesuai", tahun: "2025", provinsi: "DI YOGYAKARTA", kabkota: "KULON PROGO", kecamatan: "WATES", desa: "WATES", pembaruan: "2 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Perencanaan" },
+            { id: "1006", Status: "Belum Ada Bukti Dukung", tahun: "2026", provinsi: "DI YOGYAKARTA", kabkota: "KULON PROGO", kecamatan: "TEMON", desa: "GLAGAH", pembaruan: "1 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Intervensi" },
+            { id: "2001", Status: "Sesuai", tahun: "2025", provinsi: "JAWA TENGAH", kabkota: "SEMARANG", kecamatan: "BANYUMANIK", desa: "MAJU JAYA", pembaruan: "1 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Perencanaan" },
+            { id: "2002", Status: "Sesuai", tahun: "2025", provinsi: "JAWA TENGAH", kabkota: "SOLO", kecamatan: "JEBRES", desa: "JEBRES", pembaruan: "2 Kali", pemanf_aktif: "Ya", pemanf_jenis: "Intervensi" }
+        ];
+
+        function cleanName(val) {
+            if (!val) return '';
+            let name = val.trim().toUpperCase()
+                .replace(/^KABUPATEN\s+/i, '')
+                .replace(/^KOTA\s+/i, '');
+
+            if (
+                name === "DAERAH ISTIMEWA YOGYAKARTA" || 
+                name === "DI YOGYAKARTA" || 
+                name === "D.I. YOGYAKARTA" || 
+                name === "DIY"
+            ) {
+                return "DI YOGYAKARTA";
+            }
+            return name;
+        }
+
+        function switchVisualView(viewType) {
+            activeVisualView = viewType;
+            const btnGeo = document.getElementById('view-btn-geo');
+            const btnTren = document.getElementById('view-btn-tren');
+            const containerGeo = document.getElementById('container-view-geo');
+            const containerTren = document.getElementById('container-view-tren');
+            const titleEl = document.getElementById('visual-frame-title');
+            const descEl = document.getElementById('visual-frame-desc');
+            const iconEl = document.getElementById('visual-frame-icon');
+            const noteEl = document.getElementById('visual-frame-footer-note');
+
+            if (viewType === 'geo') {
+                btnGeo.className = 'flex items-center gap-1.5 px-3 py-1 rounded-lg text-indigo-700 bg-white shadow-sm transition-all';
+                btnTren.className = 'flex items-center gap-1.5 px-3 py-1 rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+                containerGeo.classList.remove('hidden');
+                containerGeo.classList.add('flex');
+                containerTren.classList.add('hidden');
+                containerTren.classList.remove('flex');
+
+                titleEl.innerText = 'Peta Sebaran Lokus Rumah DataKu';
+                descEl.innerText = 'Intensitas warna menunjukkan tingkat pemenuhan target';
+                iconEl.className = 'fa-solid fa-globe text-xs';
+                noteEl.innerText = 'Arahkan kursor pada pulau/provinsi untuk melihat detail lokus';
+            } else {
+                btnTren.className = 'flex items-center gap-1.5 px-3 py-1 rounded-lg text-indigo-700 bg-white shadow-sm transition-all';
+                btnGeo.className = 'flex items-center gap-1.5 px-3 py-1 rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+                containerTren.classList.remove('hidden');
+                containerTren.classList.add('flex');
+                containerGeo.classList.add('hidden');
+                containerGeo.classList.remove('flex');
+
+                titleEl.innerText = 'Tren Akumulasi Pertumbuhan Lokus';
+                descEl.innerText = 'Grafik pertumbuhan lokus Rumah DataKu per tahun';
+                iconEl.className = 'fa-solid fa-chart-line text-xs';
+                noteEl.innerText = 'Grafik tren pertumbuhan lokus secara berkala';
+
+                renderChartTren();
+            }
+        }
+
+        function renderKPICards() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const totalUnik = uniqueData.length;
+
+            const valTahun = document.getElementById('filter-tahun').value;
+            const valProv = document.getElementById('filter-provinsi').value;
+
+            let targetPerKab = valTahun === '2025' ? 1 : (valTahun === '2026' ? 3 : 4);
+            let totalTarget = 0;
+
+            if (valProv === 'all') {
+                const totalKabIndo = Object.values(totalRegenciesByProvince).reduce((a, b) => a + b, 0);
+                totalTarget = totalKabIndo * targetPerKab;
+            } else {
+                const kabCount = totalRegenciesByProvince[valProv] || 0;
+                totalTarget = kabCount * targetPerKab;
+            }
+
+            document.getElementById('kpi-target-title').innerText = valTahun === 'all' ? 'Target Akumulasi' : `Target ${valTahun}`;
+            document.getElementById('kpi-capaian-aktual').innerText = totalUnik.toLocaleString('id-ID');
+            document.getElementById('kpi-capaian-target').innerText = totalTarget.toLocaleString('id-ID');
+
+            let pct = totalTarget > 0 ? ((totalUnik / totalTarget) * 100).toFixed(1) : 0;
+            if (pct > 100) pct = 100;
+
+            document.getElementById('kpi-progress-bar').style.width = pct + '%';
+            document.getElementById('kpi-capaian-persen').innerText = pct + '%';
+
+            // Lokus Sesuai & Perbaikan Metrics
+            const sesuaiCount = uniqueData.filter(d => d.Status === 'Sesuai').length;
+            const perbaikanCount = uniqueData.filter(d => d.Status === 'Butuh Perbaikan').length;
+
+            const sesuaiPct = totalUnik > 0 ? ((sesuaiCount / totalUnik) * 100).toFixed(1) : 0;
+            const perbaikanPct = totalUnik > 0 ? ((perbaikanCount / totalUnik) * 100).toFixed(1) : 0;
+
+            document.getElementById('kpi-sesuai-count').innerText = sesuaiCount.toLocaleString('id-ID');
+            document.getElementById('kpi-sesuai-persen').innerText = sesuaiPct + '%';
+
+            document.getElementById('kpi-perbaikan-count').innerText = perbaikanCount.toLocaleString('id-ID');
+            document.getElementById('kpi-perbaikan-persen').innerText = perbaikanPct + '%';
+        }
+
+        function toTitleCase(str) {
+            if (!str) return '';
+            let formatted = str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+            if (formatted.startsWith('Di ')) formatted = 'DI ' + formatted.slice(3);
+            if (formatted.startsWith('Dki ')) formatted = 'DKI ' + formatted.slice(4);
+            return formatted;
+        }
+
+        window.onload = function() {
+            google.charts.load('current', {'packages':['geochart']});
+            google.charts.setOnLoadCallback(initializeDataConnection);
+        };
+
+        async function initializeDataConnection() {
+            const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSlFHMMpEqDnDL8nOekIR6KTW0iORfL22yXo8k7dMXPsxfJl38vk7yIeRAANhceJCn790hKxtpSpDxT/pubhtml?gid=0&single=true";
+            const csvUrl = sheetUrl.replace('/pubhtml', '/pub').replace('gid=0&single=true', 'gid=0&single=true&output=csv');
+            const statusLabel = document.getElementById('data-status');
+
+            // Coba fetch direct terlebih dahulu, jika gagal coba gunakan Proxy CORS
+            const tryFetchCSV = async (url) => {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("HTTP error " + res.status);
+                return await res.text();
+            };
+
+            try {
+                let csvText = "";
+                try {
+                    csvText = await tryFetchCSV(csvUrl);
+                } catch (e1) {
+                    console.warn("Direct fetch diblokir CORS, mencoba proxy...", e1);
+                    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(csvUrl);
+                    csvText = await tryFetchCSV(proxyUrl);
+                }
+
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        if (results.data && results.data.length > 0) {
+                            processRawData(results.data);
+                            statusLabel.innerText = "Terhubung";
+                            const badge = statusLabel.parentElement;
+                            badge.className = "flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 text-[9px] font-bold";
+                        } else {
+                            throw new Error("CSV Kosong");
+                        }
+                    }
+                });
+            } catch (err) {
+                console.warn("Menggunakan Fallback Dataset:", err.message);
+                processRawData(fallbackDatabase);
+                statusLabel.innerText = "Fallback";
+                const badge = statusLabel.parentElement;
+                badge.className = "flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 text-[9px] font-bold";
+            }
+        }
+
+        function processRawData(data) {
+            rawDatabase = data.map(item => {
+                // Pendeteksi header kolom yang lebih toleran terhadap variasi spasi / karakter
+                const keys = Object.keys(item);
+                const findKey = (...terms) => keys.find(k => {
+                    const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return terms.some(t => cleanK.includes(t));
+                });
+
+                const idKey = findKey('id', 'lokus', 'kode');
+                const statusValKey = findKey('statusvalidasi', 'status', 'validasi');
+                const thnKey = findKey('tahun', 'thn');
+                const provKey = findKey('provinsi', 'prov');
+                const kabKey = findKey('kabupaten', 'kabkota', 'kab', 'kota');
+                const kecKey = findKey('kecamatan', 'kec');
+                const desaKey = findKey('desa', 'kelurahan', 'kel');
+                const updateKey = findKey('pembaruan', 'update', 'pemutakhiran', 'mutakhir');
+                const pemanfAktifKey = findKey('pemanfaktif', 'pemanfaatanaktif', 'pemanfaatan');
+                const pemanfJenisKey = findKey('pemanfjenis', 'jenispemanfaatan', 'jenis');
+
+                return {
+                    id: idKey && item[idKey] ? item[idKey].toString().trim() : '',
+                    Status: statusValKey && item[statusValKey] ? item[statusValKey].toString().trim() : 'Belum Tervalidasi',
+                    tahun: thnKey && item[thnKey] ? item[thnKey].toString().trim() : '2025',
+                    provinsi: cleanName(provKey ? item[provKey] : ''),
+                    kabkota: cleanName(kabKey ? item[kabKey] : ''),
+                    kecamatan: cleanName(kecKey ? item[kecKey] : ''),
+                    desa: cleanName(desaKey ? item[desaKey] : ''),
+                    pembaruan: updateKey && item[updateKey] ? item[updateKey].toString().trim() : '',
+                    pemanf_aktif: pemanfAktifKey && item[pemanfAktifKey] ? item[pemanfAktifKey].toString().trim() : '',
+                    pemanf_jenis: pemanfJenisKey && item[pemanfJenisKey] ? item[pemanfJenisKey].toString().trim() : ''
+                };
+            }).filter(d => d.id || d.provinsi); // Hanya ambil baris valid
+
+            populateFilterDropdowns();
+            onFilterChange();
+        }
+
+        function populateFilterDropdowns() {
+            const provSelect = document.getElementById('filter-provinsi');
+            provSelect.innerHTML = '<option value="all">Seluruh Indonesia (38 Prov)</option>';
+            const provinces = [...new Set(rawDatabase.map(d => d.provinsi).filter(Boolean))].sort();
+
+            provinces.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = toTitleCase(p);
+                provSelect.appendChild(opt);
+            });
+        }
+
+        function onProvinsiFilterChange() {
+            const selectedProv = document.getElementById('filter-provinsi').value;
+            const kabSelect = document.getElementById('filter-kabkota');
+
+            kabSelect.innerHTML = '<option value="all">Semua Kab / Kota</option>';
+
+            if (selectedProv === 'all') {
+                kabSelect.disabled = true;
+            } else {
+                kabSelect.disabled = false;
+                const regencies = [...new Set(rawDatabase.filter(d => d.provinsi === selectedProv).map(d => d.kabkota).filter(Boolean))].sort();
+                regencies.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r;
+                    opt.textContent = toTitleCase(r);
+                    kabSelect.appendChild(opt);
+                });
+            }
+
+            onFilterChange();
+        }
+
+        function onFilterChange() {
+            const valStatus = document.getElementById('filter-status-validasi').value;
+            const valTahun = document.getElementById('filter-tahun').value;
+            const valProv = document.getElementById('filter-provinsi').value;
+            const valKab = document.getElementById('filter-kabkota').value;
+
+            filteredDatabase = rawDatabase.filter(d => {
+                const matchStatus = (valStatus === 'all') || (d.Status === valStatus);
+                const matchTahun = (valTahun === 'all') || (d.tahun === valTahun);
+                const matchProv = (valProv === 'all') || (d.provinsi === valProv);
+                const matchKab = (valKab === 'all') || (d.kabkota === valKab);
+
+                return matchStatus && matchTahun && matchProv && matchKab;
+            });
+
+            updateDashboardView();
+        }
+
+        function getUniqueLokus(dataArr) {
+            const map = new Map();
+            dataArr.forEach(item => {
+                if (item.id && !map.has(item.id)) map.set(item.id, item);
+            });
+            return Array.from(map.values());
+        }
+
+        function updateDashboardView() {
+            renderKPICards();
+            renderGeoChart();
+            renderChartTren();
+            renderLeftCharts();
+            renderRightTables();
+        }
+
+        /* LEFT CHART SUB-MENU SWITCHING */
+        function switchLeftChartTab(tabName) {
+            activeLeftChartTab = tabName;
+            const btnFreq = document.getElementById('left-tab-btn-freq');
+            const btnJenis = document.getElementById('left-tab-btn-jenis');
+            const btnIntensitas = document.getElementById('left-tab-btn-intensitas');
+
+            const containerFreq = document.getElementById('container-left-chart-freq');
+            const containerJenis = document.getElementById('container-left-chart-jenis');
+            const containerIntensitas = document.getElementById('container-left-chart-intensitas');
+
+            const titleEl = document.getElementById('left-chart-title');
+            const iconEl = document.getElementById('left-chart-icon');
+
+            // Reset Tab Styles
+            [btnFreq, btnJenis, btnIntensitas].forEach(btn => {
+                btn.className = 'flex-1 py-1 px-1 rounded text-slate-500 hover:text-slate-700 transition-all truncate';
+            });
+            [containerFreq, containerJenis, containerIntensitas].forEach(box => box.classList.add('hidden'));
+
+            if (tabName === 'freq') {
+                btnFreq.className = 'flex-1 py-1 px-1 rounded text-indigo-700 bg-white shadow-sm transition-all truncate';
+                containerFreq.classList.remove('hidden');
+                titleEl.innerText = 'Frekuensi Pemutakhiran';
+                iconEl.className = 'fa-solid fa-arrows-rotate text-[10px] text-indigo-500 shrink-0';
+                renderChartFrekuensi();
+            } else if (tabName === 'jenis') {
+                btnJenis.className = 'flex-1 py-1 px-1 rounded text-indigo-700 bg-white shadow-sm transition-all truncate';
+                containerJenis.classList.remove('hidden');
+                titleEl.innerText = 'Pemanfaatan Berdasarkan Jenis';
+                iconEl.className = 'fa-solid fa-briefcase text-[10px] text-indigo-500 shrink-0';
+                renderChartJenisPemanfaatan();
+            } else {
+                btnIntensitas.className = 'flex-1 py-1 px-1 rounded text-indigo-700 bg-white shadow-sm transition-all truncate';
+                containerIntensitas.classList.remove('hidden');
+                titleEl.innerText = 'Intensitas Pemanfaatan Data';
+                iconEl.className = 'fa-solid fa-chart-pie text-[10px] text-indigo-500 shrink-0';
+                renderChartIntensitasPemanfaatan();
+            }
+        }
+
+        function renderLeftCharts() {
+            if (activeLeftChartTab === 'freq') renderChartFrekuensi();
+            else if (activeLeftChartTab === 'jenis') renderChartJenisPemanfaatan();
+            else renderChartIntensitasPemanfaatan();
+        }
+
+        function renderChartFrekuensi() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const freqMap = { '1 Kali': 0, '2 Kali': 0, '> 2 Kali': 0, 'Lainnya': 0 };
+
+            uniqueData.forEach(d => {
+                const val = d.pembaruan;
+                if (val === '1 Kali') freqMap['1 Kali']++;
+                else if (val === '2 Kali') freqMap['2 Kali']++;
+                else if (val === '> 2 Kali' || val === '3 Kali') freqMap['> 2 Kali']++;
+                else freqMap['Lainnya']++;
+            });
+
+            if (chartFrekuensi) chartFrekuensi.destroy();
+
+            const ctx = document.getElementById('chart-frekuensi-update').getContext('2d');
+            chartFrekuensi = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(freqMap),
+                    datasets: [{
+                        data: Object.values(freqMap),
+                        backgroundColor: ['#818cf8', '#4f46e5', '#312e81', '#cbd5e1'],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            font: { weight: 'bold', size: 8 },
+                            color: '#1e1b4b'
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 8 } } },
+                        y: { display: false }
+                    }
+                }
+            });
+        }
+
+        function renderChartJenisPemanfaatan() {
+            const jenisMap = {};
+            const pemanfaatanData = filteredDatabase.filter(d => (d.pemanf_aktif || '').toLowerCase() === 'ya');
+
+            pemanfaatanData.forEach(d => {
+                if (d.pemanf_jenis) {
+                    const list = d.pemanf_jenis.split(',').map(s => s.trim()).filter(Boolean);
+                    [...new Set(list)].forEach(j => {
+                        const titleJ = toTitleCase(j);
+                        const lokusKey = `${d.id}|${titleJ}`;
+                        jenisMap[lokusKey] = titleJ;
+                    });
+                }
+            });
+
+            const jenisCounts = {};
+            Object.values(jenisMap).forEach(jenis => {
+                jenisCounts[jenis] = (jenisCounts[jenis] || 0) + 1;
+            });
+
+            const labels = Object.keys(jenisCounts);
+            const data = Object.values(jenisCounts);
+
+            if (chartJenis) chartJenis.destroy();
+
+            const ctx = document.getElementById('chart-jenis-pemanfaatan').getContext('2d');
+            chartJenis = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Belum Ada'],
+                    datasets: [{
+                        data: data.length > 0 ? data : [0],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            font: { weight: 'bold', size: 8 },
+                            color: '#312e81'
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { ticks: { font: { size: 8 } } }
+                    }
+                }
+            });
+        }
+
+        function renderChartIntensitasPemanfaatan() {
+            const intensityMap = { '1 Kategori': 0, '2 Kategori': 0, '3 Kategori': 0 };
+            const lokusJenisMap = {};
+            const pemanfaatanData = filteredDatabase.filter(d => (d.pemanf_aktif || '').toLowerCase() === 'ya');
+
+            pemanfaatanData.forEach(d => {
+                if (!lokusJenisMap[d.id]) lokusJenisMap[d.id] = new Set();
+                (d.pemanf_jenis || '').split(',').map(s => s.trim()).filter(Boolean).forEach(jenis => {
+                    lokusJenisMap[d.id].add(jenis.toLowerCase());
+                });
+            });
+
+            Object.values(lokusJenisMap).forEach(jenisSet => {
+                const count = jenisSet.size;
+                if (count === 1) intensityMap['1 Kategori']++;
+                else if (count === 2) intensityMap['2 Kategori']++;
+                else if (count >= 3) intensityMap['3 Kategori']++;
+            });
+
+            if (chartIntensitas) chartIntensitas.destroy();
+
+            const ctx = document.getElementById('chart-intensitas-pemanfaatan').getContext('2d');
+            chartIntensitas = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(intensityMap),
+                    datasets: [{
+                        data: Object.values(intensityMap),
+                        backgroundColor: ['#cbd5e1', '#818cf8', '#4f46e5']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 8 }, boxWidth: 8 } },
+                        datalabels: {
+                            color: '#ffffff',
+                            font: { weight: 'bold', size: 8 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderGeoChart() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const provCounts = {};
+
+            uniqueData.forEach(d => {
+                if (d.provinsi) provCounts[d.provinsi] = (provCounts[d.provinsi] || 0) + 1;
+            });
+
+            const container = document.getElementById('geochart-canvas');
+            const chartData = [['Region', 'Provinsi', 'Jumlah Lokus']];
+
+            Object.keys(provCounts).forEach(pUpper => {
+                const isoCode = provinceIsoMapping[pUpper];
+                if (isoCode) chartData.push([isoCode, toTitleCase(pUpper), provCounts[pUpper]]);
+            });
+
+            if (chartData.length === 1) {
+                container.innerHTML = '<div class="text-slate-400 text-xs flex items-center justify-center h-full">Data lokasi tidak tersedia.</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            const dataTable = google.visualization.arrayToDataTable(chartData);
+            const options = {
+                region: 'ID',
+                resolution: 'provinces',
+                colorAxis: { colors: ['#e0e7ff', '#6366f1', '#312e81'] },
+                backgroundColor: 'transparent',
+                datalessRegionColor: '#f1f5f9'
+            };
+
+            const chart = new google.visualization.GeoChart(container);
+            chart.draw(dataTable, options);
+        }
+
+        function renderChartTren() {
+            const years = ['2025', '2026'];
+            const counts = years.map(y => {
+                const cumulativeData = filteredDatabase.filter(d => Number(d.tahun) <= Number(y));
+                return getUniqueLokus(cumulativeData).length;
+            });
+
+            if (chartTren) chartTren.destroy();
+
+            const ctx = document.getElementById('chart-tren-tahun').getContext('2d');
+            chartTren = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years.map(y => 'Tahun ' + y),
+                    datasets: [{
+                        label: 'Jumlah Lokus',
+                        data: counts,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#4f46e5'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            align: 'top',
+                            font: { weight: 'bold', size: 11 },
+                            color: '#4f46e5'
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderChartFrekuensi() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const freqMap = { '1 Kali': 0, '2 Kali': 0, '> 2 Kali': 0 };
+
+            uniqueData.forEach(d => {
+                const val = d.pembaruan;
+                if (val === '1 Kali') freqMap['1 Kali']++;
+                else if (val === '2 Kali') freqMap['2 Kali']++;
+                else if (val === '> 2 Kali') freqMap['> 2 Kali']++;
+            });
+
+            if (chartFrekuensi) chartFrekuensi.destroy();
+
+            const ctx = document.getElementById('chart-frekuensi-update').getContext('2d');
+            chartFrekuensi = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(freqMap),
+                    datasets: [{
+                        data: Object.values(freqMap),
+                        backgroundColor: ['#818cf8', '#4f46e5', '#312e81'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'end',
+                            font: { weight: 'bold', size: 9 },
+                            color: '#1e1b4b'
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { display: false }
+                    }
+                }
+            });
+        }
+
+        /* RIGHT TAB SWITCHING LOGIC */
+        function switchRightTab(tabName) {
+            activeTab = tabName;
+            const btnRekap = document.getElementById('tab-btn-rekap');
+            const btnDetail = document.getElementById('tab-btn-detail');
+            const panelRekap = document.getElementById('panel-tab-rekap');
+            const panelDetail = document.getElementById('panel-tab-detail');
+
+            if (tabName === 'rekap') {
+                btnRekap.className = 'flex-1 py-1 rounded-lg text-indigo-700 bg-white shadow-sm transition-all';
+                btnDetail.className = 'flex-1 py-1 rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+                panelRekap.classList.remove('hidden');
+                panelDetail.classList.add('hidden');
+            } else {
+                btnDetail.className = 'flex-1 py-1 rounded-lg text-indigo-700 bg-white shadow-sm transition-all';
+                btnRekap.className = 'flex-1 py-1 rounded-lg text-slate-500 hover:text-slate-700 transition-all';
+                panelDetail.classList.remove('hidden');
+                panelRekap.classList.add('hidden');
+            }
+
+            renderRightTables();
+        }
+
+        function onRightSearchInput() {
+            rightSearchText = document.getElementById('right-search-input').value.toLowerCase();
+            renderRightTables();
+        }
+
+        function renderRightTables() {
+            renderRekapTable();
+            renderDetailLokusTable();
+        }
+
+        function renderRekapTable() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const provRekap = {};
+
+            Object.keys(totalRegenciesByProvince).forEach(p => {
+                provRekap[p] = { total: 0, sesuai: 0, revisi: 0 };
+            });
+
+            uniqueData.forEach(d => {
+                if (d.provinsi && provRekap[d.provinsi]) {
+                    provRekap[d.provinsi].total++;
+                    if (d.Status === 'Sesuai') provRekap[d.provinsi].sesuai++;
+                    else provRekap[d.provinsi].revisi++;
+                }
+            });
+
+            const body = document.getElementById('tabel-rekap-body');
+            let bodyHtml = '';
+            let no = 1;
+
+            Object.keys(provRekap).sort().forEach(p => {
+                const item = provRekap[p];
+                if (p.toLowerCase().includes(rightSearchText)) {
+                    bodyHtml += `
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-1.5 px-1 text-center font-semibold text-slate-400 text-[10px]">${no++}</td>
+                            <td class="py-1.5 px-2 font-bold text-slate-800 truncate max-w-[110px]">${toTitleCase(p)}</td>
+                            <td class="py-1.5 px-1 text-center font-extrabold text-slate-900 bg-slate-50/50">${item.total}</td>
+                            <td class="py-1.5 px-1 text-center font-bold text-emerald-700">${item.sesuai}</td>
+                            <td class="py-1.5 px-1 text-center font-bold text-rose-700">${item.revisi}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            body.innerHTML = bodyHtml || '<tr><td colspan="5" class="py-4 text-center text-slate-400">Tidak ada data rekap.</td></tr>';
+        }
+
+        function renderDetailLokusTable() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const body = document.getElementById('tabel-lokus-body');
+
+            const searched = uniqueData.filter(d => {
+                return d.id.toLowerCase().includes(rightSearchText) ||
+                       d.desa.toLowerCase().includes(rightSearchText) ||
+                       d.kabkota.toLowerCase().includes(rightSearchText) ||
+                       d.provinsi.toLowerCase().includes(rightSearchText);
+            });
+
+            let bodyHtml = '';
+            searched.slice(0, 50).forEach((d, idx) => {
+                let badgeClass = 'bg-slate-100 text-slate-700';
+                if (d.Status === 'Sesuai') badgeClass = 'bg-emerald-100 text-emerald-800';
+                else if (d.Status === 'Butuh Perbaikan') badgeClass = 'bg-rose-100 text-rose-800';
+
+                bodyHtml += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-1.5 px-1 text-center font-semibold text-slate-400 text-[10px]">${idx + 1}</td>
+                        <td class="py-1.5 px-1 font-extrabold text-indigo-600 font-mono text-[10px]">${d.id}</td>
+                        <td class="py-1.5 px-2 font-medium text-slate-800">
+                            <div class="font-bold truncate max-w-[100px]">${toTitleCase(d.desa)}</div>
+                            <div class="text-[9px] text-slate-400 truncate max-w-[100px]">${toTitleCase(d.kabkota)}</div>
+                        </td>
+                        <td class="py-1.5 px-1 text-center">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold ${badgeClass}">
+                                ${d.Status === 'Sesuai' ? 'Sesuai' : 'Revisi'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            body.innerHTML = bodyHtml || '<tr><td colspan="4" class="py-4 text-center text-slate-400">Data lokasi tidak ditemukan.</td></tr>';
+        }
+
+        function exportActiveTableToExcel() {
+            const uniqueData = getUniqueLokus(filteredDatabase);
+            const ws = XLSX.utils.json_to_sheet(uniqueData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Lokus Rumah DataKu");
+            XLSX.writeFile(wb, "Data_Lokus_RumahDataKu.xlsx");
+        }
+    </script>
+</body>
+</html>
