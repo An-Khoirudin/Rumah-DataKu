@@ -139,7 +139,7 @@
                     </div>
 
                     <!-- Chart Container Views -->
-                    <div class="h-32 w-full relative">
+                    <div class="h-28 w-full relative">
                         <!-- View 1: Frekuensi Update -->
                         <div id="container-left-chart-freq" class="w-full h-full">
                             <canvas id="chart-frekuensi-update"></canvas>
@@ -193,7 +193,7 @@
                 </div>
 
                 <!-- Visual View 1: GeoChart Map Container -->
-                <div id="container-view-geo" class="flex-1 w-full bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-center overflow-hidden min-h-[220px]">
+                <div id="container-view-geo" class="flex-1 w-full bg-slate-50/50 rounded-xl border border-slate-100 flex items-center justify-center overflow-hidden min-h-[220px] relative">
                     <div id="geochart-canvas" class="w-full h-full min-h-[220px]"></div>
                 </div>
 
@@ -355,7 +355,7 @@
         let activeTab = 'rekap';
         let rightSearchText = '';
 
-        // Mapping ISO untuk GeoChart Indonesia
+        // Mapping ISO yang diperbarui mencakup 38 Provinsi Resmi Indonesia (Termasuk DOB Papua)
         const provinceIsoMapping = {
             "ACEH": "ID-AC", "SUMATERA UTARA": "ID-SU", "SUMATERA BARAT": "ID-SB", "RIAU": "ID-RI",
             "JAMBI": "ID-JA", "SUMATERA SELATAN": "ID-SS", "BENGKULU": "ID-BE", "LAMPUNG": "ID-LA",
@@ -366,11 +366,12 @@
             "KALIMANTAN TIMUR": "ID-KI", "KALIMANTAN UTARA": "ID-KU", "SULAWESI UTARA": "ID-SA",
             "SULAWESI TENGAH": "ID-ST", "SULAWESI SELATAN": "ID-SN", "SULAWESI TENGGARA": "ID-SG",
             "GORONTALO": "ID-GO", "SULAWESI BARAT": "ID-SR", "MALUKU": "ID-MA", "MALUKU UTARA": "ID-MU",
-            "PAPUA": "ID-PA", "PAPUA BARAT": "ID-PB", "PAPUA SELATAN": "ID-PS", "PAPUA TENGAH": "ID-PT",
-            "PAPUA PEGUNUNGAN": "ID-PE", "PAPUA BARAT DAYA": "ID-PD"
+            "PAPUA": "ID-PA", "PAPUA BARAT": "ID-PB", 
+            // Tambahan Provinsi DOB Papua Terbaru
+            "PAPUA SELATAN": "ID-PS", "PAPUA TENGAH": "ID-PT", "PAPUA PEGUNUNGAN": "ID-PE", "PAPUA BARAT DAYA": "ID-PD"
         };
 
-        // Jumlah Kabupaten/Kota per Provinsi
+        // Jumlah Kabupaten/Kota per Provinsi (Total 514 Kab/Kota di 38 Provinsi)
         const totalRegenciesByProvince = {
             "ACEH": 23, "SUMATERA UTARA": 33, "SUMATERA BARAT": 19, "RIAU": 12, "JAMBI": 11,
             "SUMATERA SELATAN": 17, "BENGKULU": 10, "LAMPUNG": 15, "KEPULAUAN BANGKA BELITUNG": 7,
@@ -855,18 +856,29 @@
 
         function renderGeoChart() {
             const uniqueData = getUniqueLokus(filteredDatabase);
-            const provCounts = {};
+            const valTahun = document.getElementById('filter-tahun').value;
+            const targetPerKab = valTahun === '2025' ? 1 : (valTahun === '2026' ? 3 : 4);
 
+            const provCounts = {};
             uniqueData.forEach(d => {
                 if (d.provinsi) provCounts[d.provinsi] = (provCounts[d.provinsi] || 0) + 1;
             });
 
             const container = document.getElementById('geochart-canvas');
-            const chartData = [['Region', 'Provinsi', 'Jumlah Lokus']];
+            const chartData = [['Region', 'Provinsi', 'Capaian (%)']];
 
-            Object.keys(provCounts).forEach(pUpper => {
+            Object.keys(totalRegenciesByProvince).forEach(pUpper => {
                 const isoCode = provinceIsoMapping[pUpper];
-                if (isoCode) chartData.push([isoCode, toTitleCase(pUpper), provCounts[pUpper]]);
+                if (isoCode) {
+                    const actual = provCounts[pUpper] || 0;
+                    const totalKab = totalRegenciesByProvince[pUpper] || 1;
+                    const targetProv = totalKab * targetPerKab;
+
+                    let pct = targetProv > 0 ? Math.round((actual / targetProv) * 100) : 0;
+                    if (pct > 100) pct = 100; // Cap maksimum di 100%
+
+                    chartData.push([isoCode, `${toTitleCase(pUpper)} (${pct}%)`, pct]);
+                }
             });
 
             if (chartData.length === 1) {
@@ -879,7 +891,7 @@
             const options = {
                 region: 'ID',
                 resolution: 'provinces',
-                colorAxis: { colors: ['#e0e7ff', '#6366f1', '#312e81'] },
+                colorAxis: { colors: ['#e0e7ff', '#6366f1', '#312e81'], values: [0, 50, 100] },
                 backgroundColor: 'transparent',
                 datalessRegionColor: '#f1f5f9'
             };
